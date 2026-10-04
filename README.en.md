@@ -4,7 +4,7 @@ Control DeepSeek Harness's outbound proxy at runtime: one of three sources, chan
 
 English ｜ [中文](README.md)
 
-> **DSH Desktop only.** The web build (`dsh web`) is out of scope.
+> "System proxy" is **desktop only**: it reads the Windows settings of the machine running dsh, so the web build (`dsh web`) disables it.
 
 ## Features
 
@@ -17,7 +17,7 @@ English ｜ [中文](README.md)
 
 ## Install
 
-Requires **DSH Desktop** 0.2 series and Node.js 22+.
+Requires the DSH 0.2 series (Desktop or Web) and Node.js 22+.
 
 ```sh
 dsh plugin --profile desktop add "/absolute/path/dsh-proxy-control"
@@ -65,7 +65,7 @@ The settings page is in **Settings → Proxy**.
 | Name in the UI | Read from | When to use |
 |---|---|---|
 | **Manual** | the address you enter | most common |
-| **System** | the Windows registry `Internet Settings` (PAC is not parsed) | your proxy app has system proxy turned on |
+| **System** | the Windows registry `Internet Settings` (desktop only; PAC is not parsed) | your proxy app has system proxy turned on |
 | **Built-in** | `$DSH_HOME/.env`, or variables exported before launch | already configured in `.env` and you want the plugin to read without interfering |
 
 **Built-in = staying out of it**: the plugin installs nothing; routing goes to the layer DSH builds at launch. So "Proxy in effect" names which layer it is:
@@ -81,7 +81,7 @@ Two points: `.env` is read once at launch only, so changing it requires a restar
 ## Known limitations
 
 - **SOCKS is not supported**: the policy only accepts `http:` / `https:`; entering one is explicitly rejected with the reason.
-- **The system proxy** is read only while it is selected, and it takes a manual "Detect again" to catch up with changes in the system; PAC is not parsed.
+- **The system proxy** is desktop only (disabled on the web build), read only while it is selected, and it takes a manual "Detect again" to catch up with changes in the system; PAC is not parsed.
 - **The system bypass list is ignored wholesale**: wildcard forms like `127.*`, `<local>` are not supported by this Harness's matcher; loopback addresses are forced direct anyway.
 - **The direct list does not support CIDR** (`10.0.0.0/8` and the like are dropped, with a notice).
 - **No per-category switches**: LLM chat and web search hit the same URL and cannot be told apart at the transport layer; finer rules are left to the proxy app.

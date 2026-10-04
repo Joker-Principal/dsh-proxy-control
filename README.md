@@ -4,7 +4,7 @@
 
 [English](README.en.md) ｜ 中文
 
-> **仅支持 DSH Desktop。** Web 端（`dsh web`）不在支持范围内。
+> 「系统代理」只在**桌面版**提供：它读的是运行 dsh 那台机器的 Windows 设置，Web 端（`dsh web`）会禁用这一项。
 
 ## 特性
 
@@ -17,7 +17,7 @@
 
 ## 安装
 
-需要 **DSH Desktop** 0.2 系列与 Node.js 22+。
+需要 DSH 0.2 系列（Desktop 或 Web）与 Node.js 22+。
 
 ```sh
 dsh plugin --profile desktop add "/绝对路径/dsh-proxy-control"
@@ -65,7 +65,7 @@ dsh plugin --profile desktop add "/绝对路径/dsh-proxy-control"
 | 界面上的名字 | 从哪读 | 什么时候用 |
 |---|---|---|
 | **手动** | 你填的地址 | 最常见 |
-| **系统** | Windows 注册表 `Internet Settings`（不解析 PAC） | 代理软件开了系统代理 |
+| **系统** | Windows 注册表 `Internet Settings`（仅桌面版；不解析 PAC） | 代理软件开了系统代理 |
 | **内置** | `$DSH_HOME/.env` 或启动前导出的变量 | 已经在 `.env` 里配好，想让插件只读不干预 |
 
 **内置 = 不插手**：插件什么都不装，路由交给 DSH 启动时构建的那一层。所以「生效中的代理」会点名是哪一层：
@@ -81,7 +81,7 @@ dsh plugin --profile desktop add "/绝对路径/dsh-proxy-control"
 ## 已知限制
 
 - **不支持 SOCKS**：策略只接受 `http:` / `https:`，填了会被明确拒绝并说明原因。
-- **系统代理**只在选中它时读取，且要手动点「重新探测」才跟上系统里的改动；不解析 PAC。
+- **系统代理**只在桌面版提供（Web 端禁用），且只在选中它时读取、要手动点「重新探测」才跟上系统里的改动；不解析 PAC。
 - **系统 bypass 列表被整份忽略**：`127.*`、`<local>` 这类通配写法本 Harness 的匹配器不支持；回环地址本来就被强制直连。
 - **直连名单不支持 CIDR**（`10.0.0.0/8` 这类会被丢弃并提示）。
 - **不做按类别开关**：LLM 对话与 web 搜索打的是同一个 URL，传输层分不开；更细的规则交给代理软件。

@@ -174,6 +174,7 @@ function moduleURL(path) {
  */
 const policy = await import(moduleURL(join(runtimeDir, "node_modules/@deepseek-ai/dsh-http-proxy/lib/index.js")));
 const { chooseSystemProxy, inspectProxyUrl, normalizeSettings, parseNoProxyList } = await import("../lib/logic.js");
+const { isDesktopHost, readWindowsSystemProxy } = await import("../lib/system-proxy.js");
 const plugin = await import("../lib/index.js");
 
 // ---- 2. 测试运行器 ----------------------------------------------------------
@@ -510,6 +511,58 @@ await test("系统 bypass 的通配写法被丢弃并说明原因", () => {
 	assert.match(chosen.notes.join(" "), /不支持，已忽略/);
 	assert.match(chosen.notes.join(" "), /回环地址始终直连/);
 });
+await test("探测层说不可用时，用它给的具体原因（不要覆盖成笼统那句）", () => {
+	const chosen = chooseSystemProxy({ supported: false, reason: "Web 端（dsh web）不提供系统代理，它读的是宿主机的 Windows 设置" });
+	assert.equal(chosen.proxy, "");
+	assert.match(chosen.reason, /Web 端/);
+	assert.match(chosen.reason, /按直连处理/);
+	// 没给原因时回落到原来那句（非 Windows 的探测结果就是这样）。
+	assert.match(chooseSystemProxy({ supported: false }).reason, /当前平台没有可读的系统代理设置/);
+});
+
+// ---- 6b. 系统代理只在桌面版提供 --------------------------------------------
+
+console.log("\n系统代理：只在桌面版提供\n");
+/** 临时把本进程伪装成桌面版（Electron）或 Web 端，跑完恢复。 */
+async function asHost(desktop, body) {
+	const saved = process.versions.electron;
+	try {
+		if (desktop) process.versions.electron = "test";
+		else delete process.versions.electron;
+		return await body();
+	} finally {
+		if (saved === undefined) delete process.versions.electron;
+		else process.versions.electron = saved;
+	}
+}
+
+await test("桌面版：系统代理可读（这里用假注册表输出）", async () => {
+	await asHost(true, async () => {
+		assert.equal(isDesktopHost(), true);
+		const detection = await readWindowsSystemProxy({
+			run: async () => "    ProxyEnable    REG_DWORD    0x1\r\n    ProxyServer    REG_SZ    127.0.0.1:7890\r\n"
+		});
+		assert.equal(detection.supported, true, "Windows 桌面版应当能读");
+		assert.equal(detection.enable, true);
+		assert.equal(detection.server, "127.0.0.1:7890");
+	});
+});
+
+await test("Web 端：系统代理直接判为不提供，连注册表都不读", async () => {
+	await asHost(false, async () => {
+		assert.equal(isDesktopHost(), false);
+		let ran = false;
+		const detection = await readWindowsSystemProxy({
+			run: async () => {
+				ran = true;
+				return "";
+			}
+		});
+		assert.equal(detection.supported, false);
+		assert.equal(ran, false, "不提供就不该去起 reg.exe");
+		assert.match(String(detection.reason), /Web 端/);
+	});
+});
 
 // ---- 7. 策略安装与路由（真实运行时）----------------------------------------
 
@@ -663,6 +716,33 @@ await test("方法不匹配被拒绝（405）", async () => {
 	assert.equal((await call(route("/proxy-control/config"), { method: "GET" })).status, 405);
 	assert.equal((await call(route("/proxy-control/test"), { method: "GET" })).status, 405);
 	assert.equal((await call(route("/proxy-control/refresh"), { method: "GET" })).status, 405);
+});
+
+await test("Web 端：状态里 desktop 为 false，系统那行随之为不支持", async () => {
+	await asHost(false, async () => {
+		const response = await call(route("/proxy-control/state"));
+		assert.equal(response.status, 200);
+		assert.equal(response.body.desktop, false);
+		assert.equal(response.body.system.supported, false);
+		assert.equal(response.body.system.enabled, false);
+	});
+});
+
+await test("Web 端 + 配置里写着 system：按直连处理并说清原因，不算错误", async () => {
+	await asHost(false, async () => {
+		const before = (await call(route("/proxy-control/state"))).body.settings.mode;
+		const response = await call(route("/proxy-control/config"), { method: "POST", body: { mode: "system" } });
+		assert.equal(response.body.settings.mode, "system", "配置照存，不悄悄替用户改设置");
+		assert.equal(response.body.effective.installed, "");
+		assert.equal(response.body.effective.layer, "none");
+		assert.match(response.body.effective.source, /Web 端/);
+		assert.match(response.body.effective.source, /按直连处理/);
+		assert.equal(response.body.effective.error, "", "这不是错误，只是这一项不提供");
+		assert.equal(policy.proxyRouteFor(TARGET).proxied, false);
+		// 恢复原来的来源，别把 system 留给后面的用例。
+		await call(route("/proxy-control/config"), { method: "POST", body: { mode: before } });
+		assert.equal((await call(route("/proxy-control/state"))).body.settings.mode, before);
+	});
 });
 
 console.log("\n自测与重读");

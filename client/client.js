@@ -44,6 +44,8 @@ window.__ModuleLoader__.load({
 				'支持 host:port 与 http=…;https=… 两种写法\n没有打开或没配地址就是直连，这也是有效状态。\n不解析 PAC，以及系统 bypass 列表里的通配写法（127.*、<local>）本 Harness 不支持，会被整份忽略。',
 			systemRefresh: '重新探测',
 			systemPac: 'PAC 脚本（本 Harness 不解析）',
+			systemWebOnly: '这一项只在桌面版提供：它读的是运行 dsh 那台机器的 Windows 设置，Web 端不提供。',
+			systemWindowsOnly: '这一项只在 Windows 上有：它读的是 Windows 的 Internet Settings。',
 
 			address: '代理地址',
 			addressHelp:
@@ -96,6 +98,8 @@ window.__ModuleLoader__.load({
 				'Accepts both host:port and http=…;https=… forms\nBeing off, or having no address configured, means direct — also a valid state.\nPAC is not parsed, and wildcard entries in the system bypass list (127.*, <local>) are not supported by this Harness — the list is dropped wholesale.',
 			systemRefresh: 'Detect again',
 			systemPac: 'PAC script (this Harness does not parse it)',
+			systemWebOnly: 'This one is desktop-only: it reads the Windows settings of the machine running dsh, and the web build does not offer it.',
+			systemWindowsOnly: 'This one exists on Windows only: it reads the Windows Internet Settings.',
 
 			address: 'Proxy address',
 			addressHelp:
@@ -461,10 +465,27 @@ window.__ModuleLoader__.load({
 			const manualMode = mode === 'manual'
 
 			/**
+			 * 「系统代理」在这里能不能用；不能用时给一句具体原因。
+			 *
+			 * 两种不可用：Web 端（读的是宿主机的 Windows 设置，不在支持范围内）、非 Windows
+			 * （没有 Internet Settings 可读）。宿主在状态里用 desktop 与 system.supported 说明，
+			 * 界面只负责照说 —— 不允许用户选一个只会得到直连的来源。
+			 */
+			const systemUnavailable =
+				status.system !== undefined && status.system.supported === false
+					? status.desktop === false
+						? copy.systemWebOnly
+						: copy.systemWindowsOnly
+					: ''
+
+			/**
 			 * 三选一里的一个选项；点一下立刻保存（mode 是 volatile，会就地生效）。
 			 *
 			 * 切到"内置/系统"后再强制重读一次那一边的值：它们的值都是在别处编辑的，
 			 * 用户切换过来时想看的是**此刻**的实际情况，而不是 5 秒缓存里的旧值。
+			 *
+			 * `system` 在这里不可用时（Web 端、或非 Windows）连选都不让选：选了只会得到
+			 * 直连加一句解释，不如直接禁掉，原因写在那一行的 `?` 里。
 			 */
 			const modeOption = (value, label) =>
 				h(
@@ -475,7 +496,7 @@ window.__ModuleLoader__.load({
 						name: 'proxy-control-mode',
 						value: value,
 						checked: mode === value,
-						disabled: busy !== '',
+						disabled: busy !== '' || (value === 'system' && systemUnavailable !== ''),
 						// 返回 Promise：React 不看返回值，但测试可以 await 到"保存 + 重读"都完成。
 						onChange: () =>
 							(async () => {
@@ -594,7 +615,8 @@ window.__ModuleLoader__.load({
 
 				h(
 					Row,
-					{ label: copy.system, help: copy.systemHelp, active: systemMode, badge: systemMode ? undefined : copy.modeInactive },
+					// Web 端（或非 Windows）不提供这一项，提示里补一句具体原因，而不是让人对着置灰的行猜。
+					{ label: copy.system, help: systemUnavailable === '' ? copy.systemHelp : copy.systemHelp + ' ' + systemUnavailable, active: systemMode, badge: systemMode ? undefined : copy.modeInactive },
 					h(
 						'div',
 						{ style: { display: 'flex', alignItems: 'center', gap: '10px' } },
