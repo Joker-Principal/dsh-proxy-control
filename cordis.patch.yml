@@ -1,0 +1,21 @@
+# dsh-proxy-control 的组合包（bundle）层。
+#
+# 这一行带着插件的初始配置，所以它既能在设置界面里改，也能直接在这里改。
+# 所有字段都是 volatile：设置界面保存时会写回这一行，而 Loader 会把新值原地提交给
+# 运行中的插件（不重挂、不重启），插件监听 loader/volatile-update 后重新安装策略。
+
+- insert:
+    - id: proxy-control
+      name: 'dsh-proxy-control'
+      config:
+        # 代理地址从哪来，三者互斥：env 内置（**不干预**，把路由交给启动器那层）、
+        # system 使用 Windows 系统代理、manual 手动填写。
+        # 默认 env 是惰性的：装上这个插件不会改变任何行为，直到你主动选一个来源。
+        mode: 'env'
+        # 手动模式下的代理地址。
+        proxy: 'http://127.0.0.1:7890'
+        # 直连名单（简单分流）：这里的主机不走代理。
+        # 例：api.deepseek.com 就是「模型与搜索直连、其余走代理」。
+        noProxy: ''
+        # 自测地址，留空用 https://www.gstatic.com/generate_204。
+        testUrl: ''
