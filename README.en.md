@@ -4,6 +4,8 @@ Control DeepSeek Harness's outbound proxy at runtime: one of three sources, chan
 
 English ｜ [中文](README.md)
 
+> **DSH Desktop only.** The web build (`dsh web`) is out of scope.
+
 ## Features
 
 - **Three sources**: Built-in (the launch environment) / System (the Windows proxy settings) / Manual — pick one.
@@ -15,7 +17,7 @@ English ｜ [中文](README.md)
 
 ## Install
 
-Requires the DSH 0.2 series (Desktop or CLI) and Node.js 22+.
+Requires **DSH Desktop** 0.2 series and Node.js 22+.
 
 ```sh
 dsh plugin --profile desktop add "/absolute/path/dsh-proxy-control"

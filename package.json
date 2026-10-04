@@ -1,7 +1,7 @@
 {
   "name": "dsh-proxy-control",
   "version": "0.7.8",
-  "description": "在运行中控制 DeepSeek Harness 的出站代理：设置界面（内置/系统/手动三选一）+ 系统代理探测 + 连通性自测 + 如实状态上报，改动无需重启",
+  "description": "在运行中控制 DeepSeek Harness 的出站代理：设置界面（内置/系统/手动三选一）+ 系统代理探测 + 连通性自测 + 如实状态上报，改动无需重启。仅支持 DSH Desktop（Web 端不支持）",
   "license": "MIT",
   "repository": {
     "type": "git",

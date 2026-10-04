@@ -4,6 +4,8 @@
 
 [English](README.en.md) ｜ 中文
 
+> **仅支持 DSH Desktop。** Web 端（`dsh web`）不在支持范围内。
+
 ## 特性
 
 - **三种来源**：内置（启动环境）/ 系统（Windows 代理设置）/ 手动，三选一。
@@ -15,7 +17,7 @@
 
 ## 安装
 
-需要 DSH 0.2 系列（Desktop 或 CLI）与 Node.js 22+。
+需要 **DSH Desktop** 0.2 系列与 Node.js 22+。
 
 ```sh
 dsh plugin --profile desktop add "/绝对路径/dsh-proxy-control"
